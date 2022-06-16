@@ -1,0 +1,20 @@
+#!/usr/bin/env node
+const BuildSystem = require('cmake-js').BuildSystem;
+const include = require('node-addon-api').include;
+
+(async function main() {
+  const envVar = process.argv[2];
+  const electronVer = process.argv[3];
+  if (envVar === 'NODE_ADDON_API_INCLUDE') {
+    console.info(include.replace(/"/g, ''));
+    return;
+  }
+  const buildSystem = new BuildSystem({runtime: 'electron', runtimeVersion: electronVer});
+  const configuration = await buildSystem.getConfigureCommand();
+  const env = configuration.find((entry) => entry.includes(envVar));
+  if (!env) {
+    console.error(`Could not find variable ${envVar}!`);
+    process.exit(-1);
+  }
+  console.info(env.split('=')[1]);
+})();

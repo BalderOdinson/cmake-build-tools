@@ -1,0 +1,17 @@
+#!/usr/bin/env node
+const os = require('os');
+const fs = require('fs/promises');
+
+(async function main() {
+  const electron_executable = process.argv[2];
+  const working_directory = process.argv[3];
+  const script_output = process.argv[4];
+
+  let script_content = '';
+  if (os.platform() === 'win32') {
+    script_content = `${electron_executable} ${working_directory}`;
+  } else {
+    script_content = `#!/usr/bin/env bash${os.EOL}${electron_executable} ${working_directory}`;
+  }
+  await fs.writeFile(script_output, script_content);
+})();
