@@ -33,7 +33,8 @@ namespace {args.namespace}::sql
             content += f'    "{line.strip()} "\n'
     content += footer
 
-    with open(args.out, 'w+') as dest:
+    os.makedirs(os.path.dirname(args.out), exist_ok=True)
+    with open(args.out, 'w') as dest:
         dest.write(content)
 
 

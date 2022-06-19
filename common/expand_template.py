@@ -1,7 +1,7 @@
 import argparse
 import sys
 import pathlib
-
+import os
 
 def main(args):
     parser = argparse.ArgumentParser(
@@ -25,7 +25,8 @@ def main(args):
         for key, value in template_args:
             template = template.replace(key, value)
 
-    with open(args.dst, 'w+') as dest:
+    os.makedirs(os.path.dirname(args.dst), exist_ok=True)
+    with open(args.dst, 'w') as dest:
         dest.write(template)
 
 
