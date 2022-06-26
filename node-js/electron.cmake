@@ -7,6 +7,11 @@ function(FindElectron)
         set(ELECTRON_EXECUTABLE ${CMAKE_CURRENT_SOURCE_DIR}/node_modules/electron/dist/electron)
     endif ()
     set_property(DIRECTORY PROPERTY ELECTRON_EXECUTABLE ${ELECTRON_EXECUTABLE})
+    # Sometimes ELECTRON_RUN_AS_NODE=1 might be set due to other rules.
+    # To ensure this does not happens we unset ELECTRON_RUN_AS_NODE
+    if ($ENV{ELECTRON_RUN_AS_NODE})
+        unset(ENV{ELECTRON_RUN_AS_NODE})
+    endif()
     execute_process(COMMAND ${ELECTRON_EXECUTABLE} --version OUTPUT_VARIABLE ELECTRON_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
     string(REGEX REPLACE "\r?\n" "" ELECTRON_VERSION ${ELECTRON_VERSION})
     string(SUBSTRING ${ELECTRON_VERSION} 1 -1 ELECTRON_VERSION)
