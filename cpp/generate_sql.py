@@ -21,10 +21,10 @@ def main(args):
 
 namespace {args.namespace}::sql
 {{
-  static constexpr const char {os.path.basename(args.sql).partition('.')[0].upper().replace('-', '_')}[] = 
+  static constexpr const char {os.path.basename(args.sql).partition('.')[0].upper().replace('-', '_')}[] =
 """
     footer = f""";
-}} // namespace  {args.namespace}::sql
+}}// namespace {args.namespace}::sql
 """
 
     content = header
