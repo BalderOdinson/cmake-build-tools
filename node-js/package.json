@@ -6,8 +6,7 @@
     "node-addon-api": "^4.3.0"
   },
   "scripts": {
-    "print_env_value": "node print_env_value",
-    "build_electron_executable": "node build_electron_executable"
+    "print_env_value": "node print_env_value"
   },
   "devDependencies": {}
 }

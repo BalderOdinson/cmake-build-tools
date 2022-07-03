@@ -1,4 +1,5 @@
 include(FetchContent)
+include(common/common)
 include(tools/find_cmake_path)
 
 function(FindNode)

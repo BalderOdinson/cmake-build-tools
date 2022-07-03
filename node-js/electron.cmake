@@ -1,4 +1,4 @@
-include(common/common)
+include(tools/find_cmake_path)
 
 function(FindElectron)
     if (WIN32)
@@ -19,56 +19,71 @@ function(FindElectron)
     set_property(DIRECTORY PROPERTY ELECTRON_VERSION ${ELECTRON_VERSION})
 endfunction()
 
-function(target_app_name target app_name)
-    set_property(TARGET ${target} PROPERTY APP_NAME ${app_name})
-endfunction()
-
-function(target_description target description)
-    set_property(TARGET ${target} PROPERTY APP_DESCRIPTION ${description})
-endfunction()
-
-function(target_version target version)
-    set_property(TARGET ${target} PROPERTY APP_VERSION ${version})
-endfunction()
-
-function(target_main target main)
-    set_property(TARGET ${target} PROPERTY APP_MAIN ${main})
+function(target_set_icon target app_icon)
+    find_cmake_path(${app_icon} OUT_VAR app_icon_full)
+    set_property(TARGET ${target} PROPERTY APP_ICON ${app_icon_full})
 endfunction()
 
 function(add_electron_executable target main_process renderer_process)
     get_property(TOOLS_PACKAGE_JSON_DIR GLOBAL PROPERTY TOOLS_PACKAGE_JSON_DIR)
     get_property(PACKAGE_JSON_DIR DIRECTORY PROPERTY PACKAGE_JSON_DIR)
     get_property(ELECTRON_VERSION DIRECTORY PROPERTY ELECTRON_VERSION)
+    get_property(ELECTRON_EXECUTABLE DIRECTORY PROPERTY ELECTRON_EXECUTABLE)
+
+    # Generate app icon
+    set(assets_out ${CMAKE_CURRENT_BINARY_DIR}/assets)
 
     set(app_name $<TARGET_PROPERTY:${target},APP_NAME>)
     set(app_name_expand $<IF:$<BOOL:${app_name}>,${app_name},${target}>)
-    set(description $<TARGET_PROPERTY:${target},APP_DESCRIPTION>)
-    set(description_expand $<IF:$<BOOL:${description}>,${description},${target}>)
-    set(version $<TARGET_PROPERTY:${target},APP_VERSION>)
-    set(version_expand $<IF:$<BOOL:${version}>,${version},0.0.1>)
-    set(main $<TARGET_PROPERTY:${target},APP_MAIN>)
-    set(main_expand $<IF:$<BOOL:${main}>,./${main_process}/${main},./${main_process}/main.js>)
-    set(out_package_json ${CMAKE_CURRENT_BINARY_DIR}/out/package.json)
-    set(template_package_json ${TOOLS_PACKAGE_JSON_DIR}/template.package.json)
-    expand_template(SOURCE ${template_package_json}
-            DESTINATION ${out_package_json}
-            KEYS "@name@" "@description@" "@version@" "@main@"
-            VALUES ${app_name_expand} ${description_expand} ${version_expand} ${main_expand}
-            DEPENDS ${main_process} ${template_package_json})
 
-    set(out_dir ${CMAKE_CURRENT_BINARY_DIR}/out/${target})
-    set(electron_packager ${NPX_EXECUTABLE} electron-packager)
-    set(electron_packager_env ${CMAKE_COMMAND} -E env NODE_PATH=${PACKAGE_JSON_DIR}/node_modules)
-    set(electron_packager_args ${CMAKE_CURRENT_BINARY_DIR}/out
-            --overwrite
-            --electron-version ${ELECTRON_VERSION}
-            --out "${out_dir}")
+    set(app_icon $<TARGET_PROPERTY:${target},APP_ICON>)
+    set(icon_generator ${NPX_EXECUTABLE} electron-icon-maker)
+    set(icon_generator_env ${CMAKE_COMMAND} -E env NODE_PATH=${PACKAGE_JSON_DIR}/node_modules)
+    set(icon_generator_args --input=${app_icon} --output=${assets_out})
+    add_custom_command(OUTPUT ${assets_out}/icons/mac/icon.icns
+            COMMAND ${icon_generator_env} ${icon_generator} ${icon_generator_args}
+            WORKING_DIRECTORY ${PACKAGE_JSON_DIR}
+            COMMENT "Generating icon"
+            DEPENDS ${app_icon})
+
+    # Generate package.json
+    set(main_sources $<TARGET_GENEX_EVAL:${main_process},$<TARGET_PROPERTY:${main_process},OUTPUTS>>)
+    set(out_package_json ${CMAKE_CURRENT_BINARY_DIR}/out/package.json)
+
+    set(icon_out $<IF:$<BOOL:${app_icon}>,${assets_out}/icons/mac/icon.icns,>)
+    set(icon_arg0 $<IF:$<BOOL:${app_icon}>,ICONS_PATH,>)
+    set(icon_arg1 $<IF:$<BOOL:${app_icon}>,${assets_out}/icons,>)
+
+    set(generate_package_json_cmd ${CMAKE_COMMAND} -P
+        ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/generate_package_json.cmake
+        SRC ${PACKAGE_JSON_DIR}/package.json
+        DST ${out_package_json}
+        SOURCES ${main_sources}
+        ELECTRON_VERSION ${ELECTRON_VERSION}
+        ELECTRON_EXECUTABLE ${ELECTRON_EXECUTABLE}
+        ${icon_arg0} ${icon_arg1})
+    add_custom_command(OUTPUT ${out_package_json}
+        COMMAND ${generate_package_json_cmd}
+        COMMENT "Generating package.json"
+        VERBATIM
+        DEPENDS ${PACKAGE_JSON_DIR}/package.json
+        ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/generate_package_json.cmake
+        ${main_process}
+        ${icon_out})
+
+    # Define final output dir
+    set(out_dir ${CMAKE_CURRENT_BINARY_DIR}/out/dist)
+
+    # Run electron packager
+    set(electron_builder ${NPX_EXECUTABLE} electron-builder)
+    set(electron_builder_env ${CMAKE_COMMAND} -E env NODE_PATH=${PACKAGE_JSON_DIR}/node_modules)
+    set(electron_builder_args --project ${CMAKE_CURRENT_BINARY_DIR}/out)
     set(main_process_dependencies $<TARGET_PROPERTY:${main_process},OUTPUTS>)
     set(main_process_dependencies_expand $<GENEX_EVAL:${main_process_dependencies}>)
     set(renderer_process_dependencies $<TARGET_PROPERTY:${renderer_process},OUTPUTS>)
     set(renderer_process_dependencies_expand $<GENEX_EVAL:${renderer_process_dependencies}>)
     add_custom_command(OUTPUT "${out_dir}"
-            COMMAND ${electron_packager_env} ${electron_packager} ${electron_packager_args}
+            COMMAND ${electron_builder_env} ${electron_builder} ${electron_builder_args}
             WORKING_DIRECTORY ${PACKAGE_JSON_DIR}
             COMMENT "Packaging ${out_dir}"
             DEPENDS ${main_process_dependencies_expand} ${renderer_process_dependencies_expand} ${out_package_json})
