@@ -1,5 +1,5 @@
 set(options "")
-set(oneValueArgs ICONS_PATH ELECTRON_EXECUTABLE ELECTRON_VERSION SRC DST)
+set(oneValueArgs ICONS_PATH ELECTRON_DIST ELECTRON_VERSION SRC DST)
 set(multiValueArgs SOURCES)
 
 set(ARGN "")
@@ -44,8 +44,7 @@ if (has_error OR NOT build_prop_type STREQUAL "OBJECT")
 endif()
 
 string(JSON json_content SET ${json_content} build electronVersion "\"${GENERATE_ELECTRON_VERSION}\"")
-cmake_path(GET GENERATE_ELECTRON_EXECUTABLE PARENT_PATH electron_path)
-string(JSON json_content SET ${json_content} build electronDist "\"${electron_path}\"")
+string(JSON json_content SET ${json_content} build electronDist "\"${GENERATE_ELECTRON_DIST}\"")
 string(JSON json_content SET ${json_content} build npmRebuild "false")
 
 if (GENERATE_ICONS_PATH)

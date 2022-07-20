@@ -3,10 +3,13 @@ include(tools/find_cmake_path)
 function(FindElectron)
     if (WIN32)
         set(ELECTRON_EXECUTABLE ${CMAKE_CURRENT_SOURCE_DIR}/node_modules/electron/dist/electron.exe)
-    else ()
+    elseif (APPLE)
+        set (ELECTRON_EXECUTABLE ${CMAKE_CURRENT_SOURCE_DIR}/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron)
+    else()
         set(ELECTRON_EXECUTABLE ${CMAKE_CURRENT_SOURCE_DIR}/node_modules/electron/dist/electron)
     endif ()
     set_property(DIRECTORY PROPERTY ELECTRON_EXECUTABLE ${ELECTRON_EXECUTABLE})
+    set_property(DIRECTORY PROPERTY ELECTRON_DIST ${CMAKE_CURRENT_SOURCE_DIR}/node_modules/electron/dist)
     # Sometimes ELECTRON_RUN_AS_NODE=1 might be set due to other rules.
     # To ensure this does not happens we unset ELECTRON_RUN_AS_NODE
     if ($ENV{ELECTRON_RUN_AS_NODE})
@@ -28,7 +31,7 @@ function(add_electron_executable target main_process renderer_process)
     get_property(TOOLS_PACKAGE_JSON_DIR GLOBAL PROPERTY TOOLS_PACKAGE_JSON_DIR)
     get_property(PACKAGE_JSON_DIR DIRECTORY PROPERTY PACKAGE_JSON_DIR)
     get_property(ELECTRON_VERSION DIRECTORY PROPERTY ELECTRON_VERSION)
-    get_property(ELECTRON_EXECUTABLE DIRECTORY PROPERTY ELECTRON_EXECUTABLE)
+    get_property(ELECTRON_DIST DIRECTORY PROPERTY ELECTRON_DIST)
 
     # Generate app icon
     set(assets_out ${CMAKE_CURRENT_BINARY_DIR}/assets)
@@ -60,7 +63,7 @@ function(add_electron_executable target main_process renderer_process)
         DST ${out_package_json}
         SOURCES ${main_sources}
         ELECTRON_VERSION ${ELECTRON_VERSION}
-        ELECTRON_EXECUTABLE ${ELECTRON_EXECUTABLE}
+        ELECTRON_DIST ${ELECTRON_DIST}
         ${icon_arg0} ${icon_arg1})
     add_custom_command(OUTPUT ${out_package_json}
         COMMAND ${generate_package_json_cmd}
